@@ -34,8 +34,25 @@ dependencies = [
 dev = [
   "ipykernel",
   "pytest",
-  "ruff"
+  "ruff",
+  "pre-commit",
+  "mypy",
+  "jupyterlab"
 ]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend-include = ["*.ipynb"]   # if you lint notebooks
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM", "RUF"]
+ignore = ["E501"]   # you can tweak later
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = "--cov=src/nyc_mobility_friction --cov-report=term-missing"
+testpaths = ["tests"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/nyc_mobility_friction"]
