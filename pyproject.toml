@@ -1,0 +1,41 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "nyc-mobility-friction"
+version = "0.1.0"
+description = "Portfolio project using NYC taxi trips and NYC 311 requests to prioritize mobility interventions."
+readme = {file = "README.md", content-type = "text/markdow"}
+requires-python = ">=3.11"
+license = {text = "MIT"}
+authors = [
+  { name = "Vinicius" }
+]
+
+dependencies = [
+  "pandas",
+  "numpy",
+  "pyarrow",
+  "jupyterlab",
+  "matplotlib",
+  "seaborn",
+  "plotly",
+  "geopandas",
+  "shapely",
+  "folium",
+  "scikit-learn",
+  "statsmodels",
+  "sqlalchemy",
+  "requests"
+]
+
+[project.optional-dependencies]
+dev = [
+  "ipykernel",
+  "pytest",
+  "ruff"
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/nyc_mobility_friction"]
