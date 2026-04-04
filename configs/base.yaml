@@ -1,0 +1,17 @@
+project_name: nyc-mobility-friction
+random_seed: 42
+
+data:
+  raw_filename_nyc: nyc.csv
+  raw_filename_311: 311.csv
+
+split:
+  train_fraction: 0.8
+
+artifacts:
+  save_figures: true
+  save_tables: true
+  figures_dir: artifacts/figures 
+  tables_fir: artifacts/tables 
+
+

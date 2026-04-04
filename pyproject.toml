@@ -1,12 +1,12 @@
 [build-system]
-requires = ["hatchling>=1.27"]
+requires = ["hatchling>=1.27", "setuptools>=65"]   # ← added setuptools as safety net
 build-backend = "hatchling.build"
 
 [project]
 name = "nyc-mobility-friction"
 version = "0.1.0"
 description = "Portfolio project using NYC taxi trips and NYC 311 requests to prioritize mobility interventions."
-readme = {file = "README.md", content-type = "text/markdow"}
+readme = "README.md"
 requires-python = ">=3.11"
 license = {text = "MIT"}
 authors = [
