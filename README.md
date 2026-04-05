@@ -1,60 +1,67 @@
-# NYC Mobility Friction
+# NYC Taxi Operational Friction
 
-This project combines **NYC taxi trip records** and **NYC 311 service requests** to identify areas where resident-reported mobility problems and weaker taxi-service outcomes overlap.
+This project uses **NYC Yellow Taxi trip records** to identify taxi zones that show
+signs of operational strain or inefficient service patterns.
 
-The goal is not to explain all mobility issues in New York City. The goal is to support a more practical question:
+The goal is not to explain all mobility issues in New York City. The goal is to support
+a practical question:
 
-**Which taxi zones should be prioritized for deeper operational review or intervention?**
+**Which taxi zones should be prioritized for deeper operational review?**
 
 ## Decision context
 
-Local government cannot investigate every street-level mobility issue at once.  
-This project is designed as a prioritization tool that flags areas where:
+City agencies and transportation operators cannot review every taxi zone at once.
 
-- taxi activity is operationally strained, and
-- residents repeatedly report mobility-related problems
+This project is designed as a prioritization tool that flags zones where taxi activity
+suggests possible operational friction, such as:
 
-These areas may be candidates for:
-- curb-management review
-- pickup/dropoff enforcement
-- taxi stand review
+- unusually long trip times relative to distance
+- persistent pickup/dropoff imbalance
+- low pickup activity relative to surrounding demand patterns
+- concentration of late-night or irregular service patterns
+- repeated signs of weak zone-level performance over time
+
+These zones may be candidates for:
+
+- curb management review
+- pickup/dropoff policy review
+- taxi stand evaluation
 - late-night service monitoring
-- further field investigation
+- deeper operational investigation
 
 ## Current scope
 
-The current phase uses **one month of data** from both sources to validate the workflow, test geography alignment, and identify useful indicators.
+The current phase uses **three month of taxi trip data** to validate the workflow, 
+define useful indicators, and test whether taxi zones can support a stable zone-level 
+prioritization framework.
 
 At this stage, the project is a **prototype**, not a final policy recommendation.  
-A longer time window will be needed before making stable zone-level conclusions.
+A longer time window will be needed before making stable conclusions about persistent 
+zone-level patterns.
 
-## Data sources
+## Data source
 
 - **NYC Taxi Trip Records**  
-  Used to measure taxi demand, trip patterns, and service outcomes.
-
-- **NYC 311 Service Requests**  
-  Used as a resident-reported signal of local mobility friction.
+  Used to measure trip activity, trip outcomes, and zone-level operational patterns.
 
 ## Analytical approach
 
-The project builds a zone-level view of mobility conditions by combining:
+The project builds a zone-level view of taxi operations using indicators such as:
 
-### Taxi metrics
-- pickup and dropoff volume
+- pickup volume
+- dropoff volume
+- pickup/dropoff imbalance
 - trip duration
 - trip distance
 - duration per mile
 - late-night trip share
+- invalid or extreme-trip rate
+- day-level persistence of high-friction conditions
 
-### 311 metrics
-- mobility-related request count
-- complaint type mix
-- closure time
-- repeat issue frequency
+## Output
 
-### Combined output
-A prototype ranking of zones where taxi-service friction and resident-reported issues appear to overlap.
+A prototype ranking of taxi zones where operational friction appears elevated and may 
+justify deeper review.
 
 ## Repository structure
 
@@ -62,26 +69,29 @@ A prototype ranking of zones where taxi-service friction and resident-reported i
 - `notebooks/` exploration and analysis
 - `src/` reusable Python code
 - `dashboard/` visualization app
-- `report/` policy memo and write-up
+- `report/` short memo and write-up
 
 ## Project status
 
 In progress. Current work is focused on:
+
 - data extraction and cleaning
-- geography alignment
-- early exploratory analysis
+- taxi-zone aggregation
+- exploratory analysis
 - feature design for zone-level scoring
 
 ## Limitations
 
-- One month of data is not enough to capture seasonality
-- 311 requests reflect reporting behavior as well as underlying conditions
-- Taxi trips represent only part of city mobility
-- Spatial matching may introduce measurement error
+- Three month of data is not enough to capture seasonality
+- Taxi trips represent only part of urban travel demand
+- Zone-level metrics may be sensitive to outliers and rare extreme trips
+- Operational friction metrics are screening tools, not causal explanations
 
 ## Next steps
 
+- refine taxi cleaning rules and outlier treatment
+- build daily zone-level aggregates
+- define a transparent friction score
+- rank priority zones for review
 - expand to multiple months
-- refine the mobility-related 311 subset
-- build zone-level scoring features
-- develop a dashboard and short policy memo
+- develop a dashboard and short memo

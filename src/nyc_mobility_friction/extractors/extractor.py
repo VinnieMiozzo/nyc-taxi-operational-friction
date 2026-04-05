@@ -1,6 +1,6 @@
 """
 NYC Mobility friction Data Extractor
-Downloads raw NYC Yellow/Green Taxi trips + 311 Service Requests.
+Downloads raw NYC Yellow/Green Taxi trips.
 """
 
 from pathlib import Path
@@ -60,80 +60,6 @@ def download_taxi(
     print(f"Saved {out_path.name} ({out_path.stat().st_size / 1_000_000:.1f} MB)")
     return out_path
 
-def download_311(
-    start_date: str,
-    end_date: str,
-    max_records: int = 100_000,
-    page_size: int = 5000,
-) -> Path | None:
-    """Download NYC 311 Service Requests for a given date range.
-
-    Uses the official SODA API with pagination and rate-limit safety.
-    Results are saved as a compressed Parquet file.
-
-    Args:
-        start_date: Start date in YYYY-MM-DD format.
-        end_date: End date in YYYY-MM-DD format.
-        max_records: Maximum number of records to fetch (default: 100_000).
-        page_size: Records per API page (default: 5000).
-
-    Returns:
-        Path to the saved Parquet file, or None if no records were found.
-
-    Raises:
-        requests.exceptions.HTTPError: If any API request fails.
-    """
-    ensure_raw_dirs()
-
-    filename = f"311_{start_date}_{end_date}.parquet"
-    out_path = Path("data/raw/311") / filename
-
-    if out_path.exists():
-        print(f"311 file already exists: {out_path.name}")
-        return out_path
-
-    base_url = "https://data.cityofnewyork.us/resource/erm2-nwe9.json"
-    offset = 0
-    all_records = []
-    total = 0
-
-    print(f"⬇️  Fetching 311 data from {start_date} to {end_date}...")
-
-    while True:
-        params = {
-            "$limit": page_size,
-            "$offset": offset,
-            "$where": f"created_date >= '{start_date}' AND created_date < '{end_date}'",
-            "$order": "created_date ASC",
-        }
-
-        resp = requests.get(base_url, params=params, timeout=30)
-        resp.raise_for_status()
-        page = resp.json()
-
-        if not page:
-            break
-
-        all_records.extend(page)
-        total += len(page)
-        print(f"   Fetched {len(page):,} records → total: {total:,}")
-
-        if len(page) < page_size or total >= max_records:
-            break
-
-        offset += page_size
-        time.sleep(0.3)  # Be nice to the API
-
-    if not all_records:
-        print("No 311 records found for the date range.")
-        return None
-
-    df = pd.DataFrame(all_records)
-    df.to_parquet(out_path, engine="pyarrow", compression="snappy", index=False)
-
-    print(f"Saved {len(df):,} 311 records → {out_path.name}")
-    return out_path
-
 def main() -> None:
     """Parse command-line arguments and trigger the appropriate downloads.
 
@@ -151,24 +77,12 @@ def main() -> None:
         help="Taxi type (default: yellow)",
     )
 
-    parser.add_argument("--311-start", type=str, dest="start_date", help="311 start date YYYY-MM-DD")
-    parser.add_argument("--311-end", type=str, dest="end_date", help="311 end date YYYY-MM-DD")
-    parser.add_argument(
-        "--max-311",
-        type=int,
-        default=100_000,
-        help="Maximum 311 records to fetch (default 100k)",
-    )
-
     args = parser.parse_args()
 
     if args.taxi_year is not None and args.taxi_month is not None:
         download_taxi(args.taxi_year, args.taxi_month, args.taxi_type)
 
-    if args.start_date and args.end_date:
-        download_311(args.start_date, args.end_date, max_records=args.max_311)
-
-    if not any([args.taxi_year, args.start_date]):
+    if not any(args.taxi_year):
         parser.print_help()
 
 
