@@ -27,19 +27,24 @@ class ProjectPaths:
     artifacts: Path
     reports: Path
     notebooks: Path
+    dashboards: Path
+    src: Path
 
 @lru_cache(maxsize=1)
 def get_project_paths() -> ProjectPaths:
     """Rerturn a single object containing every single path."""
     root = Path(__file__).resolve().parents[2]
-
+    data = root / "data"
     return ProjectPaths(
         root=root,
         configs=root / "configs",
-        raw=root / "data" / "raw",
-        interim=root / "data" / "interim",
-        processed=root / "data" / "processed",
+        data= data,
+        raw=data / "raw",
+        interim=data / "interim",
+        processed= data / "processed",
         artifacts=root / "artifacts",
-        reports=root / "reports",
+        reports=root / "report",
         notebooks=root / "notebooks",
+        dashboards = root / "dashboards",
+        src = root / "src"
         )
