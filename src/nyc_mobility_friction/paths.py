@@ -29,6 +29,8 @@ class ProjectPaths:
     notebooks: Path
     dashboards: Path
     src: Path
+    log: Path
+
 
 @lru_cache(maxsize=1)
 def get_project_paths() -> ProjectPaths:
@@ -46,5 +48,6 @@ def get_project_paths() -> ProjectPaths:
         reports=root / "report",
         notebooks=root / "notebooks",
         dashboards = root / "dashboards",
-        src = root / "src"
+        src = root / "src",
+        log = root / "logs"
         )
