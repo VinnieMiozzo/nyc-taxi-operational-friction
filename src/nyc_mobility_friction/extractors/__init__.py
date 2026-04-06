@@ -1,7 +1,7 @@
 """
-NYC Mobility Friction - Extractors package
-Easy and safe imports.
+Extractor package exports for the NYC Mobility Friction project.
 """
+
 
 # Only expose what is needed
 from .utils import (

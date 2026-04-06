@@ -1,7 +1,10 @@
 """
-NYC Mobility Friction Data Extractor
-Generates US holidays (including observed dates) for given years.
+Holiday extractor for the NYC Mobility Friction project.
+
+This module generates a raw CSV of observed US holidays for the
+requested years and saves it under data/raw/external/.
 """
+
 
 from pathlib import Path
 import pandas as pd
@@ -18,15 +21,14 @@ logger = logging.getLogger(__name__)
 
 
 def extract_holidays(years: list[int], force: bool = False) -> Path:
-    """Generate US holidays CSV for the requested years.
-
-    The holidays include observed dates (e.g. when a holiday falls on a weekend).
+    """Generate observed US holidays for the requested years.
 
     Args:
-        years: List of four-digit years (e.g. [2024, 2025]).
+        years: List of four-digit years, such as [2024, 2025].
+        force: Overwrite an existing file if True.
 
     Returns:
-        Path to the saved holidays.csv file.
+        Path to the saved holidays CSV file.
     """
     ensure_external_dirs()
     paths = get_project_paths()

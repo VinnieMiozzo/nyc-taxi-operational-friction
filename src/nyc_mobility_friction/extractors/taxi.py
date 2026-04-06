@@ -1,7 +1,10 @@
 """
-NYC Mobility friction Data Extractor
-Downloads raw NYC Yellow/Green Taxi trips.
+Taxi trip extractor for the NYC Mobility Friction project.
+
+This module downloads raw monthly NYC TLC taxi trip files from the
+official TLC trip-data endpoint and saves them under data/raw/taxi/.
 """
+
 
 from pathlib import Path 
 import requests
