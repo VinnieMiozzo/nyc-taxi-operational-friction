@@ -1,3 +1,12 @@
+"""
+Weather extractor for the NYC Mobility Friction project.
+
+This module downloads daily historical NYC weather from the Open-Meteo
+archive API for a requested date range and saves the raw output under
+data/raw/external/.
+"""
+
+
 from pathlib import Path
 import logging
 
@@ -14,7 +23,16 @@ def extract_weather(
     end_date: str = "2025-03-31",
     force: bool = False,
 ) -> Path:
-    """Download daily weather data for NYC from Open-Meteo archive API."""
+    """Download daily historical NYC weather for a requested date range.
+
+    Args:
+        start_date: Inclusive start date in YYYY-MM-DD format.
+        end_date: Inclusive end date in YYYY-MM-DD format.
+        force: Overwrite an existing file if True.
+
+    Returns:
+        Path to the saved CSV file.
+    """
     start_ts = pd.Timestamp(start_date)
     end_ts = pd.Timestamp(end_date)
 

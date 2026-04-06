@@ -1,6 +1,10 @@
 """
-Shared utilities for all extractors in the NYC Mobility Friction project.
+Shared extractor utilities for the NYC Mobility Friction project.
+
+This module provides logging setup, raw directory creation helpers,
+and reusable HTTP session configuration for extractor modules.
 """
+
 
 from pathlib import Path
 import logging
@@ -13,7 +17,17 @@ from nyc_mobility_friction.paths import get_project_paths
 
 
 def setup_logger(log_name: str = __name__) -> logging.Logger:
-    """Configure root logging to console + file once per pipeline run."""
+    """Configure root logging for an extraction run.
+
+    Logging is sent to both stdout and a timestamped file under
+    logs/extract/.
+
+    Args:
+        log_name: Base name used for the log filename.
+
+    Returns:
+        Path to the created log file.
+    """
     paths = get_project_paths()
     log_dir = paths.root / "logs" / "extract"
     log_dir.mkdir(parents=True, exist_ok=True)
@@ -65,6 +79,7 @@ def ensure_raw_dirs() -> None:
     (paths.raw / "taxi").mkdir(exist_ok=True)
 
 def make_session():
+    """Create a retry-enabled HTTP session for extractor requests."""
     session = requests.Session()
     retry = Retry(
         total=5,

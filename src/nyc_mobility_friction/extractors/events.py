@@ -1,7 +1,9 @@
 """
-NYC Mobility Friction Data Extractor
+Permitted events extractor for the NYC Mobility Friction project.
 
-Downloads NYC Permitted Events from the official Socrata API.
+This module downloads NYC permitted event records from the official
+NYC Open Data Socrata API for a requested date range and saves the
+raw results under data/raw/external/.
 """
 
 from __future__ import annotations
@@ -38,6 +40,7 @@ VALID_COLUMNS = [
 
 
 def make_socrata_client(domain: str) -> Socrata:
+    """Create a Socrata client with retry-enabled HTTP adapters."""
     client = Socrata(
         domain,
         os.getenv("SOCRATA_APP_TOKEN"),
@@ -67,20 +70,17 @@ def extract_events(
     force: bool = False,
     limit: int = 100_000,
 ) -> Path:
-    """
-    Download NYC permitted events from the Socrata API.
+    """Download NYC permitted events for a requested date range.
 
-    Strategy:
-    - query Socrata by year using date_extract_y(start_date_time)
-    - page through results with stable ordering
-    - filter the exact requested date range locally in pandas
-    - write incrementally to CSV
+    The extractor pages through the Socrata API with stable ordering,
+    applies an exact local date-range filter, and writes the raw result
+    to data/raw/external/ as a CSV.
 
     Args:
-        start_date: inclusive YYYY-MM-DD
-        end_date: inclusive YYYY-MM-DD
-        force: overwrite existing file if True
-        limit: Socrata page size
+        start_date: Inclusive start date in YYYY-MM-DD format.
+        end_date: Inclusive end date in YYYY-MM-DD format.
+        force: Overwrite an existing file if True.
+        limit: Page size for Socrata API requests.
 
     Returns:
         Path to the saved CSV file.

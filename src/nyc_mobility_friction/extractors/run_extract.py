@@ -1,3 +1,12 @@
+"""
+Command-line orchestration for raw data extraction.
+
+This module runs the end-to-end raw extraction pipeline for taxi trips,
+permitted events, weather, and holidays. Taxi data is downloaded at the
+source-month level, while external context sources can be requested for
+an explicit daily date range.
+"""
+
 import argparse
 import logging
 import requests
