@@ -8,16 +8,16 @@ import pandas as pd
 import holidays
 
 from .utils import (
-    setup_logger,
     ensure_external_dirs,
 )
 
 from nyc_mobility_friction.paths import get_project_paths
 
-logger = setup_logger(__name__)
+import logging
+logger = logging.getLogger(__name__)
 
 
-def extract_holidays(years: list[int]) -> Path:
+def extract_holidays(years: list[int], force: bool = False) -> Path:
     """Generate US holidays CSV for the requested years.
 
     The holidays include observed dates (e.g. when a holiday falls on a weekend).
@@ -31,10 +31,10 @@ def extract_holidays(years: list[int]) -> Path:
     ensure_external_dirs()
     paths = get_project_paths()
 
-    filename = f"holidays_{years[0]}.csv"
+    filename = f"holidays_{years[0]}_{years[-1]}.csv"
     out_path = paths.raw / "external" / filename
 
-    if out_path.exists():
+    if out_path.exists() and not force:
         logger.info(f"Holidays data already exists: {out_path.name}")
         return out_path
 
@@ -51,7 +51,10 @@ def extract_holidays(years: list[int]) -> Path:
                 })
 
     holidays_df = pd.DataFrame(holiday_list)
-    holidays_df.to_csv(out_path, index=False)
+    temp_path = out_path.with_suffix(out_path.suffix + ".path")
+
+    holidays_df.to_csv(temp_path, index=False)
+    temp_path.replace(out_path)
 
     logger.info(f"Saved {out_path.name} ({len(holidays_df)} holidays)")
     return out_path

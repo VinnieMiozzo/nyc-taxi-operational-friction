@@ -14,10 +14,11 @@ from requests.adapters import HTTPAdapter
 from sodapy import Socrata
 from urllib3.util.retry import Retry
 
-from .utils import setup_logger, ensure_external_dirs
+from .utils import  ensure_external_dirs
 from nyc_mobility_friction.paths import get_project_paths
 
-logger = setup_logger(__name__)
+import logging
+logger = logging.getLogger(__name__) 
 
 DATASET_ID = "bkfu-528j"
 
@@ -86,8 +87,8 @@ def extract_events(
     """
     ensure_external_dirs()
     paths = get_project_paths()
-
-    filename = f"nyc_permitted_events_{start_date[:7]}_{end_date[:7]}.csv"
+    filename = f"nyc_permitted_events_{start_date}_{end_date}.csv"
+    
     out_path = paths.raw / "external" / filename
     temp_path = out_path.with_suffix(".part.csv")
 
@@ -113,78 +114,77 @@ def extract_events(
     total_written = 0
 
     try:
-        for year in years:
-            where_clause = (
-                    f"start_date_time >= '{start_date}' "
-                    f"AND start_date_time < '{end_date}'"
+        where_clause = (
+                f"start_date_time >= '{start_date}' "
+                f"AND start_date_time < '{end_date}'"
+            )
+        logger.info(f"Processing with clause WHERE: {where_clause}")
+
+        try:
+            count_result = client.get(
+                DATASET_ID,
+                select="count(*) as n",
+                where=where_clause,
+            )
+            expected_rows = int(count_result[0]["n"])
+            logger.info(f"Expected rows for {start_date} to {end_date}: {expected_rows:,}")
+        except Exception as e:
+            logger.warning(f"Could not get count for {start_date} to {end_date}: {e}")
+            expected_rows = None
+
+        offset = 0
+
+        while True:
+            batch = client.get(
+                DATASET_ID,
+                select=select_clause,
+                where=where_clause,
+                order=":id",
+                limit=limit,
+                offset=offset,
+            )
+
+            if not batch:
+                break
+
+            df = pd.DataFrame.from_records(batch)
+            batch_size = len(df)
+            total_fetched += batch_size
+
+            # Local exact date-range filter
+            df["start_date_time"] = pd.to_datetime(
+                df["start_date_time"],
+                errors="coerce",
+            )
+
+            df = df[
+                (df["start_date_time"] >= start_ts)
+                & (df["start_date_time"] < end_exclusive_ts)
+            ].copy()
+
+            if not df.empty:
+                df.to_csv(
+                    temp_path,
+                    mode="w" if first_chunk else "a",
+                    header=first_chunk,
+                    index=False,
                 )
-            logger.info(f"Processing year {year} with WHERE: {where_clause}")
+                total_written += len(df)
+                first_chunk = False
 
-            try:
-                count_result = client.get(
-                    DATASET_ID,
-                    select="count(*) as n",
-                    where=where_clause,
+            offset += limit
+
+            if expected_rows is None:
+                logger.info(
+                    f"Period {start_date} to {end_date} | fetched={total_fetched:,} | written={total_written:,}"
                 )
-                expected_rows = int(count_result[0]["n"])
-                logger.info(f"Expected rows for {start_date} to {end_date}: {expected_rows:,}")
-            except Exception as e:
-                logger.warning(f"Could not get count for {start_date} to {end_date}: {e}")
-                expected_rows = None
-
-            offset = 0
-
-            while True:
-                batch = client.get(
-                    DATASET_ID,
-                    select=select_clause,
-                    where=where_clause,
-                    order=":id",
-                    limit=limit,
-                    offset=offset,
+            else:
+                logger.info(
+                    f"Period {start_date} to {end_date} | fetched this query up to offset {offset:,} / {expected_rows:,} | total_written={total_written:,}"
                 )
 
-                if not batch:
-                    break
-
-                df = pd.DataFrame.from_records(batch)
-                batch_size = len(df)
-                total_fetched += batch_size
-
-                # Local exact date-range filter
-                df["start_date_time"] = pd.to_datetime(
-                    df["start_date_time"],
-                    errors="coerce",
-                )
-
-                df = df[
-                    (df["start_date_time"] >= start_ts)
-                    & (df["start_date_time"] < end_exclusive_ts)
-                ].copy()
-
-                if not df.empty:
-                    df.to_csv(
-                        temp_path,
-                        mode="w" if first_chunk else "a",
-                        header=first_chunk,
-                        index=False,
-                    )
-                    total_written += len(df)
-                    first_chunk = False
-
-                offset += limit
-
-                if expected_rows is None:
-                    logger.info(
-                        f"Year {year} | fetched={total_fetched:,} | written={total_written:,}"
-                    )
-                else:
-                    logger.info(
-                        f"Year {year} | fetched this query up to offset {offset:,} / {expected_rows:,} | total_written={total_written:,}"
-                    )
-
-                if batch_size < limit:
-                    break
+            if batch_size < limit:
+                break
 
         if first_chunk:
             # no rows matched; create an empty file with headers

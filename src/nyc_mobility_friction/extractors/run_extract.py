@@ -1,14 +1,5 @@
-"""
-NYC Mobility Friction Data Extractor
-
-Main orchestrator that downloads all raw data sources
-(taxi, events, weather, holidays).
-
-Events and weather are pulled month by month so long ranges
-do not fail as a single big request.
-"""
-
 import argparse
+import logging
 import requests
 from datetime import datetime, date
 from calendar import monthrange
@@ -19,7 +10,7 @@ from nyc_mobility_friction.extractors.weather import extract_weather
 from nyc_mobility_friction.extractors.calendar import extract_holidays
 from nyc_mobility_friction.extractors.utils import setup_logger
 
-logger = setup_logger(__name__)
+logger = logging.getLogger(__name__)
 
 
 def _validate_months(months: list[int]) -> list[int]:
@@ -106,6 +97,7 @@ def run_full_extraction(
     months: list[int] | None = None,
     start_date: str | None = None,
     end_date: str | None = None,
+    force: bool = False,
 ) -> None:
     """
     Run the complete data extraction pipeline.
@@ -115,15 +107,27 @@ def run_full_extraction(
         months: Months to download, e.g. [1, 2, 3]. Defaults to all 12 months.
         start_date: Optional explicit start date for events/weather (YYYY-MM-DD).
         end_date: Optional explicit end date for events/weather (YYYY-MM-DD).
+        force: Re-download / rebuild raw files even if they already exist.
     """
+    log_path = setup_logger("run_extract")
+    logger.info(f"Writing logs to: {log_path}")
+
     if not years:
         raise ValueError("You must provide at least one year.")
 
+    years = sorted(set(years))
     months = _validate_months(months or list(range(1, 13)))
 
-    logger.info("🚀 Starting full extraction for NYC Mobility Friction project")
-    logger.info(f"Years: {sorted(set(years))}")
+    logger.info("Starting full extraction for NYC Mobility Friction project")
+    logger.info(f"Years: {years}")
     logger.info(f"Months: {months}")
+    logger.info(f"Force rebuild: {force}")
+
+    if start_date is not None and end_date is not None:
+        logger.info(
+            "Explicit date range applies to events/weather only. "
+            "Taxi extraction remains month-based; exact taxi study-window filtering happens later during cleaning."
+        )
 
     monthly_ranges = _build_monthly_ranges(
         years=years,
@@ -132,38 +136,49 @@ def run_full_extraction(
         end_date=end_date,
     )
 
-    # 1. Taxi data
+    logger.info(f"Monthly context ranges: {monthly_ranges}")
+
     logger.info("=== Taxi Data ===")
-    for year in sorted(set(years)):
+    for year in years:
         for month in months:
             try:
-                logger.info(f"Downloading taxi data for {year}-{month:02d}")
-                download_taxi_month(year, month, taxi_type="yellow")
+                logger.info(f"Getting taxi data for {year}-{month:02d}")
+                download_taxi_month(
+                    year=year,
+                    month=month,
+                    taxi_type="yellow",
+                    force=force,
+                )
             except requests.exceptions.HTTPError as e:
                 if e.response is not None and e.response.status_code == 403:
                     logger.warning(f"Data not yet available for {year}-{month:02d}. Skipping.")
                     continue
                 raise
 
-    # 2. Events
-    logger.info("\n=== Permitted Events ===")
+    logger.info("=== Permitted Events ===")
     for chunk_start, chunk_end in monthly_ranges:
         logger.info(f"Getting events data from {chunk_start} to {chunk_end}")
-        extract_events(start_date=chunk_start, end_date=chunk_end)
+        extract_events(
+            start_date=chunk_start,
+            end_date=chunk_end,
+            force=force,
+        )
 
-    # 3. Weather
-    logger.info("\n=== Weather Data ===")
+    logger.info("=== Weather Data ===")
     for chunk_start, chunk_end in monthly_ranges:
         logger.info(f"Getting weather data from {chunk_start} to {chunk_end}")
-        extract_weather(start_date=chunk_start, end_date=chunk_end)
+        extract_weather(
+            start_date=chunk_start,
+            end_date=chunk_end,
+            force=force,
+        )
 
-    # 4. Holidays
-    logger.info("\n=== Holidays ===")
-    logger.info(f"Getting holidays for years: {sorted(set(years))}")
-    extract_holidays(years=sorted(set(years)))
+    logger.info("=== Holidays ===")
+    logger.info(f"Getting holidays for years: {years}")
+    extract_holidays(years=years, force=force)
 
-    logger.info(f"\n🎉 Extraction completed at {datetime.now().strftime('%Y-%m-%d %H:%M')}")
-    logger.info("Raw data location → data/raw/")
+    logger.info(f"Extraction completed at {datetime.now().strftime('%Y-%m-%d %H:%M')}")
+    logger.info("Raw data location -> data/raw/")
 
 
 if __name__ == "__main__":
@@ -199,6 +214,12 @@ if __name__ == "__main__":
         help="Optional end date for events/weather (YYYY-MM-DD)",
     )
 
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Re-download or rebuild files even if they already exist.",
+    )
+
     args = parser.parse_args()
 
     run_full_extraction(
@@ -206,4 +227,5 @@ if __name__ == "__main__":
         months=args.months,
         start_date=args.start_date,
         end_date=args.end_date,
+        force=args.force,
     )

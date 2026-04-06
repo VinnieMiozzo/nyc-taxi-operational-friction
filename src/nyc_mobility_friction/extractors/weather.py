@@ -1,51 +1,38 @@
-"""
-NYC Mobility Friction Data Extractor
-Downloads daily historical weather for NYC using Open-Meteo archive API.
-"""
-
 from pathlib import Path
-import requests
+import logging
+
 import pandas as pd
 
-from .utils import (
-    setup_logger,
-    ensure_external_dirs,
-)
-
+from .utils import ensure_external_dirs, make_session
 from nyc_mobility_friction.paths import get_project_paths
 
-logger = setup_logger(__name__)
+logger = logging.getLogger(__name__)
 
 
 def extract_weather(
     start_date: str = "2025-01-01",
-    end_date: str = "2025-03-31"
+    end_date: str = "2025-03-31",
+    force: bool = False,
 ) -> Path:
-    """Download daily weather data for NYC from Open-Meteo archive API.
+    """Download daily weather data for NYC from Open-Meteo archive API."""
+    start_ts = pd.Timestamp(start_date)
+    end_ts = pd.Timestamp(end_date)
 
-    The data is fetched from the public Open-Meteo historical archive.
+    if start_ts > end_ts:
+        raise ValueError(f"start_date ({start_date}) must be <= end_date ({end_date})")
 
-    Args:
-        start_date: Start date in YYYY-MM-DD format.
-        end_date: End date in YYYY-MM-DD format.
-
-    Returns:
-        Path to the saved CSV file.
-
-    Raises:
-        requests.exceptions.HTTPError: If the API request fails.
-    """
     ensure_external_dirs()
     paths = get_project_paths()
 
-    filename = f"nyc_daily_weather_{start_date[:7]}_{end_date[:7]}.csv"
+    filename = f"nyc_daily_weather_{start_date}_{end_date}.csv"
     out_path = paths.raw / "external" / filename
+    temp_path = out_path.with_suffix(".part.csv")
 
-    if out_path.exists():
+    if out_path.exists() and not force:
         logger.info(f"Weather data already exists: {out_path.name}")
         return out_path
 
-    logger.info(f"Downloading weather data → {start_date} to {end_date}")
+    logger.info(f"Downloading weather data -> {start_date} to {end_date}")
 
     url = "https://archive-api.open-meteo.com/v1/archive"
     params = {
@@ -53,32 +40,50 @@ def extract_weather(
         "longitude": -73.97,
         "start_date": start_date,
         "end_date": end_date,
-        "daily": "weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,snowfall_sum,precipitation_hours,wind_speed_10m_max",
+        "daily": (
+            "weather_code,"
+            "temperature_2m_max,"
+            "temperature_2m_min,"
+            "precipitation_sum,"
+            "snowfall_sum,"
+            "precipitation_hours,"
+            "wind_speed_10m_max"
+        ),
         "temperature_unit": "fahrenheit",
         "wind_speed_unit": "mph",
         "precipitation_unit": "inch",
-        "timezone": "America/New_York"
+        "timezone": "America/New_York",
     }
 
+    session = make_session()
+
     try:
-        r = requests.get(url, params=params, timeout=60)
-        r.raise_for_status()
+        response = session.get(url, params=params, timeout=60)
+        response.raise_for_status()
 
-        data = r.json()["daily"]
-        weather = pd.DataFrame(data)
+        payload = response.json()
+        if "daily" not in payload:
+            raise ValueError("Weather API response missing 'daily' field.")
 
-        # Clean and enrich
+        weather = pd.DataFrame(payload["daily"])
+        if "time" not in weather.columns:
+            raise ValueError("Weather API response missing 'time' column.")
+
         weather["date"] = pd.to_datetime(weather["time"]).dt.date
         weather = weather.drop(columns=["time"])
-        weather["temp_avg_f"] = (weather["temperature_2m_max"] + weather["temperature_2m_min"]) / 2
+        weather["temp_avg_f"] = (
+            weather["temperature_2m_max"] + weather["temperature_2m_min"]
+        ) / 2
         weather["has_precip"] = weather["precipitation_sum"] > 0
         weather["has_snow"] = weather["snowfall_sum"] > 0
 
-        weather.to_csv(out_path, index=False)
+        weather.to_csv(temp_path, index=False)
+        temp_path.replace(out_path)
 
         logger.info(f"Saved {out_path.name} ({len(weather)} days)")
         return out_path
 
-    except Exception as e:
-        logger.error(f"Failed to download weather data: {e}")
+    except Exception:
+        temp_path.unlink(missing_ok=True)
+        logger.exception(f"Failed to download weather data for {start_date} to {end_date}")
         raise
