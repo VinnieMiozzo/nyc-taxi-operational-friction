@@ -31,7 +31,7 @@ These zones may be candidates for:
 
 ## Current scope
 
-The current phase uses **three month of taxi trip data** to validate the workflow, 
+The current phase uses **three months of taxi trip data** to validate the workflow, 
 define useful indicators, and test whether taxi zones can support a stable zone-level 
 prioritization framework.
 

@@ -1,30 +1,25 @@
-"""Configuration loading utilities for the nyc mobility friction project.
+"""Configuration loading utilities for the NYC mobility friction project."""
 
-This module provides a single source of truth for loading YAML configuration files from
-the `config/` directory. All downstream code (models, scenarios, budget optimizer, etc.
-) should import config via `load_config()` rather then reading YAML directly.
-"""
-
-from pathlib import Path 
+from pathlib import Path
 from typing import Any
 
 import yaml
 
-from mmm_budget_reallocation.paths import get_project_paths
+from nyc_mobility_friction.paths import get_project_paths
 
 
 def load_config(filename: str = "base.yaml") -> dict[str, Any]:
     """Load a YAML config file from the configs directory.
-    
+
     Args:
         filename: Name of the YAML file (with or without .yaml extension).
-                  Default is `base.yaml`
-                  
+            Default is `base.yaml`.
+
     Returns:
         The parsed configuration as a dictionary.
 
     Raises:
-        FileNotFoundError: If the requested config file does not exists.
+        FileNotFoundError: If the requested config file does not exist.
         ValueError: If the file is not valid YAML or does not parse to a dict.
     """
     paths = get_project_paths()

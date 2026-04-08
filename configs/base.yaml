@@ -12,6 +12,5 @@ artifacts:
   save_figures: true
   save_tables: true
   figures_dir: artifacts/figures 
-  tables_fir: artifacts/tables 
-
+  tables_dir: artifacts/tables 
 
