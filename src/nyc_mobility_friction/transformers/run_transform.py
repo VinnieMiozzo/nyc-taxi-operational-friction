@@ -1,4 +1,4 @@
-":qa
+"""
 Command-line orchestration for processed data transformation.
 
 This module runs transformer jobs for the NYC Mobility Friction project.
