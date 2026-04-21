@@ -14,6 +14,7 @@ authors = [
 ]
 
 dependencies = [
+  "marimo",
   "pandas",
   "numpy",
   "pyarrow",
